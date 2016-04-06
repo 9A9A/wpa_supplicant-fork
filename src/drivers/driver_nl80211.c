@@ -1994,6 +1994,10 @@ static int nl80211_mgmt_subscribe_non_ap(struct i802_bss *bss)
 	    (nl80211_register_action_frame(bss, (u8 *) "\x05\x02", 2) < 0))
 		ret = -1;
 
+	/* Radio Measurement - Radio Measurement Request */
+	if (nl80211_register_action_frame(bss, (u8 *)"\x05\x00", 2) < 0)
+		ret = -1;
+
 	nl80211_mgmt_handle_register_eloop(bss);
 
 	return ret;
