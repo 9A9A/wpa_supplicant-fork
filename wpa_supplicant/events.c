@@ -3278,18 +3278,25 @@ static void wpas_event_rx_mgmt_action(struct wpa_supplicant *wpa_s,
 	}
 #endif /* CONFIG_INTERWORKING */
 
-	if (category == WLAN_ACTION_RADIO_MEASUREMENT &&
-	    payload[0] == WLAN_RRM_NEIGHBOR_REPORT_RESPONSE) {
-		wpas_rrm_process_neighbor_rep(wpa_s, payload + 1, plen - 1);
-		return;
-	}
-
-	if (category == WLAN_ACTION_RADIO_MEASUREMENT &&
-	    payload[0] == WLAN_RRM_LINK_MEASUREMENT_REQUEST) {
-		wpas_rrm_handle_link_measurement_request(wpa_s, mgmt->sa,
-							 payload + 1, plen - 1,
-							 rssi);
-		return;
+	if (category == WLAN_ACTION_RADIO_MEASUREMENT) {
+		if (payload[0] == WLAN_RRM_RADIO_MEASUREMENT_REQUEST) {
+			wpas_rrm_handle_radio_measurement_request(wpa_s,
+								  mgmt->sa,
+								  payload + 1,
+								  plen - 1);
+			return;
+		} else if (payload[0] == WLAN_RRM_NEIGHBOR_REPORT_RESPONSE) {
+			wpas_rrm_process_neighbor_rep(wpa_s, payload + 1,
+						      plen - 1);
+			return;
+		} else if (payload[0] == WLAN_RRM_LINK_MEASUREMENT_REQUEST) {
+			wpas_rrm_handle_link_measurement_request(wpa_s,
+								 mgmt->sa,
+								 payload + 1,
+								 plen - 1,
+								 rssi);
+			return;
+		}
 	}
 
 #ifdef CONFIG_FST
