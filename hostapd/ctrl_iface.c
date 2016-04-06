@@ -53,6 +53,7 @@
 #include "config_file.h"
 #include "ctrl_iface.h"
 #include "ap/neighbor_db.h"
+#include "ap/rrm.h"
 
 
 #define HOSTAPD_CLI_DUP_VALUE_MAX_LEN 256
@@ -2072,6 +2073,21 @@ static int hostapd_ctrl_iface_track_sta_list(struct hostapd_data *hapd,
 #endif /* NEED_AP_MLME */
 
 
+static int hostapd_ctrl_iface_req_lci(struct hostapd_data *hapd,
+				      const char *cmd)
+{
+	u8 addr[ETH_ALEN];
+
+	if (hwaddr_aton(cmd, addr)) {
+		wpa_printf(MSG_ERROR,
+			   "CTRL: Request LCI: Inavalid MAC address");
+		return -1;
+	}
+
+	return hostapd_send_lci_req(hapd, addr);
+}
+
+
 static int hostapd_ctrl_iface_set_neighbor(struct hostapd_data *hapd, char *buf)
 {
 	struct wpa_ssid_value ssid;
@@ -2444,6 +2460,9 @@ static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 			reply_len = -1;
 	} else if (os_strncmp(buf, "REMOVE_NEIGHBOR ", 16) == 0) {
 		if (hostapd_ctrl_iface_remove_neighbor(hapd, buf + 16))
+			reply_len = -1;
+	} else if (os_strncmp(buf, "REQ_LCI ", 8) == 0) {
+		if (hostapd_ctrl_iface_req_lci(hapd, buf + 8))
 			reply_len = -1;
 	} else {
 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
