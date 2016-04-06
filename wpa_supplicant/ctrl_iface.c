@@ -8228,15 +8228,87 @@ static int wpas_ctrl_vendor_elem_remove(struct wpa_supplicant *wpa_s, char *cmd)
 static void wpas_ctrl_neighbor_rep_cb(void *ctx, struct wpabuf *neighbor_rep)
 {
 	struct wpa_supplicant *wpa_s = ctx;
+	size_t len;
+	u8 *data;
 
-	if (neighbor_rep) {
-		wpa_msg_ctrl(wpa_s, MSG_INFO, RRM_EVENT_NEIGHBOR_REP_RXED
-			     "length=%u",
-			     (unsigned int) wpabuf_len(neighbor_rep));
-		wpabuf_free(neighbor_rep);
-	} else {
+#define NR_IE_MIN_LEN (ETH_ALEN + 4 + 1 + 1 + 1)
+
+	if (!neighbor_rep || wpabuf_len(neighbor_rep) == 0) {
 		wpa_msg_ctrl(wpa_s, MSG_INFO, RRM_EVENT_NEIGHBOR_REP_FAILED);
+		goto out;
 	}
+
+	data = wpabuf_mhead_u8(neighbor_rep);
+	len = wpabuf_len(neighbor_rep);
+
+	while (len >= 2 + NR_IE_MIN_LEN) {
+		char str[512 + 3];
+		char *nr, *lci, *civic, *pos;
+		u8 curr_nr_len = data[1];
+
+		if (data[0] != WLAN_EID_NEIGHBOR_REPORT ||
+		    curr_nr_len < NR_IE_MIN_LEN) {
+			wpa_printf(MSG_DEBUG,
+				   "CTRL: Invalid NR IE. id=%d len=%u",
+				   data[0], curr_nr_len);
+			goto out;
+		}
+
+		if (curr_nr_len > len) {
+			wpa_printf(MSG_DEBUG,
+				   "CTRL: Invalid NR IE id=%d len=%zu < nr_len=%u",
+				   data[0], len, curr_nr_len);
+			goto out;
+		}
+
+		wpa_snprintf_hex(str, NR_IE_MIN_LEN * 2 + 1,
+				 &data[2], NR_IE_MIN_LEN);
+		nr = str;
+
+		curr_nr_len -= NR_IE_MIN_LEN;
+		len -= 2 + NR_IE_MIN_LEN;
+		data += 2 + NR_IE_MIN_LEN;
+
+		lci = NULL;
+		civic = NULL;
+		for (pos = str + strlen(str) + 1;
+		     curr_nr_len > 2 && curr_nr_len >= 2 + data[1];
+		     pos = pos + strlen(pos) + 1) {
+			if (data[0] == WLAN_EID_MEASURE_REPORT && data[1] > 3) {
+				switch (data[4]) {
+				case MEASURE_TYPE_LCI:
+					if (lci)
+						break;
+					wpa_snprintf_hex(pos, data[1] * 2 + 1,
+							 &data[2], data[1]);
+					lci = pos;
+					break;
+				case MEASURE_TYPE_LOCATION_CIVIC:
+					if (civic)
+						break;
+					wpa_snprintf_hex(pos, data[1] * 2 + 1,
+							 &data[2], data[1]);
+					civic = pos;
+					break;
+				default:
+					break;
+				}
+			}
+
+			curr_nr_len -= 2 + data[1];
+			len -= (2 + data[1]);
+			data += (2 + data[1]);
+		}
+
+		wpa_msg_ctrl(wpa_s, MSG_INFO, RRM_EVENT_NEIGHBOR_REP_RXED
+			     "nr=%s%s%s%s%s",
+			     nr,
+			     lci ? " lci=" : "", lci ? lci : "",
+			     civic ? " civic=" : "", civic ? civic : "");
+	}
+
+out:
+	wpabuf_free(neighbor_rep);
 }
 
 
