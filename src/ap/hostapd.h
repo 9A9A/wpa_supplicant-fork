@@ -301,6 +301,9 @@ struct hostapd_data {
 
 	u8 lci_req_token;
 	int lci_req_active;
+
+	u8 range_req_token;
+	int range_req_active;
 };
 
 

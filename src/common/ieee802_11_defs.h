@@ -368,6 +368,13 @@
 #define WLAN_RRM_CAPS_NEIGHBOR_REPORT BIT(1)
 /* byte 2 (out of 5) */
 #define WLAN_RRM_CAPS_LCI_MEASUREMENT BIT(4)
+/* byte 5 (out of 5) */
+#define WLAN_RRM_CAPS_RANGE_REPORT BIT(2)
+
+/* 802.11 MC D4.3 spec - 8.4.2.20.19 (Fine Timing Measurement Range request) -
+ * Minimum AP count
+ */
+#define WLAN_RRM_RANGE_REQ_MAX_MIN_AP 15
 
 /* Timeout Interval Type */
 #define WLAN_TIMEOUT_REASSOC_DEADLINE 1
