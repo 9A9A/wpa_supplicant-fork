@@ -281,7 +281,7 @@ void wpa_roamer::OnScanResults()
             }
             else
             {
-                cancel_hysteresis(&connected_list);
+                cancel_hysteresis(&m_scanned_ap_list);
             }
         }
 #ifdef DEBUG
@@ -319,12 +319,15 @@ void wpa_roamer::show_list(ap_list* ptr)
 }
 void wpa_roamer::cancel_hysteresis(ap_list* ptr)
 {
-    for(auto &i : *ptr)
+    if(ptr)
     {
-        auto ap_ptr = m_scanned_ap_list.find_ap_by_bssid(i.bssid());
-        if(ap_ptr)
+        for(auto &i : *ptr)
         {
-            ap_ptr->cancel_hysteresis();
+            auto ap_ptr = m_scanned_ap_list.find_ap_by_bssid(i.bssid());
+            if(ap_ptr)
+            {
+                ap_ptr->cancel_hysteresis();
+            }
         }
     }
 }
@@ -338,17 +341,17 @@ void wpa_roamer::make_roam(const string& _ssid,const mac_addr& _bssid)
 }
 void wpa_roamer::hard_roam(ap_list* ptr)
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
-    cancel_hysteresis(&m_scanned_ap_list);
-    auto bst_ptr = ptr->get_best_signal(m_current_bssid);
-    if(bst_ptr && (bst_ptr->rssi() > m_current_rssi))
+    if(ptr)
     {
+        cancel_hysteresis(&m_scanned_ap_list);
+        auto bst_ptr = ptr->get_best_signal(m_current_bssid);
+        if(bst_ptr && (bst_ptr->rssi() > m_current_rssi))
+        {
 #ifdef DEBUG
-        cout << "HARD ";
+            cout << "HARD ";
 #endif
-        make_roam(m_ssid,bst_ptr->bssid());
+            make_roam(m_ssid,bst_ptr->bssid());
+        }
     }
 }
 void wpa_roamer::soft_roam(ap_list* ptr)
@@ -365,9 +368,9 @@ void wpa_roamer::soft_roam(ap_list* ptr)
                 {
                     if(i.check_hysteresis(m_current_rssi,m_nHysteresis,m_nMinRssiLevel,m_nTransitionTime))
                     {
-    #ifdef DEBUG
+#ifdef DEBUG
                         cout << "SOFT ";
-    #endif
+#endif
                         if(!m_bRoamed)
                         {
                             make_roam(m_ssid,i.bssid());
