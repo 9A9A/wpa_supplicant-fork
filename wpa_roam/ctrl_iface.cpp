@@ -32,8 +32,6 @@ wpa_ctrl_iface::wpa_ctrl_iface(const string& unix_socket_dir , const string& ifa
 
 wpa_ctrl_iface::~wpa_ctrl_iface()
 {
-    stop_thread();
-    unique_lock<mutex> locker(m_thread_end);
     disconnect();
 #ifdef DEBUG
     cout << CurrentTime() << __CLASS__ << " destroyed\n";
@@ -200,6 +198,7 @@ void wpa_ctrl_iface::stop_thread()
     if(m_bThreadActive)
     {
         m_bThreadActive = false;
+        unique_lock<mutex> lock(m_thread_end);
     }
 }
 void wpa_ctrl_iface::thread_routine()

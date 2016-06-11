@@ -18,6 +18,10 @@ void g_MainThreadLock::unlock()
     m_bLocked = false;
     m_condvar.notify_all();
 }
+bool g_MainThreadLock::locked()
+{
+    return m_bLocked;
+}
 
 Application::Application(const string&   unix_socket,
             const string&   iface,

@@ -12,6 +12,7 @@ public:
     g_MainThreadLock();
     void lock();
     void unlock();
+    bool locked();
 };
 class Application
 {

@@ -6,7 +6,14 @@ using namespace chrono;
 
 void signal_handler(int signum)
 {
-    Application::locker()->unlock();
+    if(Application::locker()->locked())
+    {
+        Application::locker()->unlock();
+    }
+    else
+    {
+        exit(0);
+    }
 }
 
 

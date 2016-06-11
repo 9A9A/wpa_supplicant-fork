@@ -152,7 +152,6 @@ wpa_roamer::wpa_roamer(shared_ptr<wpa_event_monitor>& monitor,size_t Hysteresis,
 wpa_roamer::~wpa_roamer()
 {
     stop_thread();
-    unique_lock<mutex> lock(m_thread_end);
     unbind_callbacks();
 #ifdef DEBUG
     cout << CurrentTime() << __CLASS__ << " destroyed\n";
@@ -459,6 +458,7 @@ void wpa_roamer::stop_thread()
     {
         m_bThreadActive = false;
         unlock_polling_thread();
+        unique_lock<mutex> lock(m_thread_end);
     }
 }
 int wpa_roamer::get_network_id(const string& ssid)
