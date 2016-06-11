@@ -1,0 +1,48 @@
+# depslib dependency file v1.0
+1465660134 source:/home/hrgve/hostap/wpa_roam/ctrl_iface.cpp
+	"wpa_roam.h"
+
+1465660591 /home/hrgve/hostap/wpa_roam/wpa_roam.h
+	<iostream>
+	<cstring>
+	<sstream>
+	<fstream>
+	<vector>
+	<stdio.h>
+	<sys/stat.h>
+	<functional>
+	<memory>
+	<thread>
+	<chrono>
+	<map>
+	<ctime>
+	<condition_variable>
+	<atomic>
+	<mutex>
+	<set>
+	<string>
+	<unistd.h>
+	"common/wpa_ctrl.h"
+
+1462203859 /home/hrgve/hostap/src//common/wpa_ctrl.h
+
+1465660174 source:/home/hrgve/hostap/wpa_roam/main.cpp
+	"wpa_roam.h"
+	"wpa_application.h"
+
+1465654983 source:/home/hrgve/hostap/wpa_roam/utilities.cpp
+	"wpa_roam.h"
+
+1465336743 source:/home/hrgve/hostap/wpa_roam/access_point.cpp
+	"wpa_roam.h"
+
+1465660109 source:/home/hrgve/hostap/wpa_roam/wpa_roam.cpp
+	"wpa_roam.h"
+
+1465655536 /home/hrgve/hostap/wpa_roam/wpa_application.h
+	"wpa_roam.h"
+	"signal.h"
+
+1465655574 source:/home/hrgve/hostap/wpa_roam/wpa_application.cpp
+	"wpa_application.h"
+
