@@ -272,4 +272,10 @@ string mac_addr::to_string() const
     }
     return sstream.str();
 }
+ostream& operator<< (ostream& os, const mac_addr& mac)
+{
+    os << mac.to_string();
+    return os;
+}
+
 

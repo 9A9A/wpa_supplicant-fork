@@ -4,7 +4,7 @@ wpa_access_point::wpa_access_point()
 {
     m_bHysteresisMode = false;
 }
-wpa_access_point::wpa_access_point(bool os,const string& ssid,mac_addr& addr,size_t freq,int rssi)
+wpa_access_point::wpa_access_point(bool os,const string& ssid,const mac_addr& addr,size_t freq,int rssi)
 {
     m_bopen_system = os;
     m_ssid = ssid;
@@ -12,6 +12,16 @@ wpa_access_point::wpa_access_point(bool os,const string& ssid,mac_addr& addr,siz
     m_frequency = freq;
     m_rssi = rssi;
     m_bHysteresisMode = false;
+}
+wpa_access_point::wpa_access_point(const wpa_access_point& obj)
+{
+    m_rssi = obj.m_rssi;
+    m_bHysteresisMode = obj.m_bHysteresisMode;
+    m_ssid = obj.m_ssid;
+    m_frequency = obj.m_frequency;
+    m_bopen_system = obj.m_bopen_system;
+    m_bssid = obj.m_bssid;
+    m_HysteresisStartTime = obj.m_HysteresisStartTime;
 }
 wpa_access_point& wpa_access_point::operator =(const wpa_access_point& obj)
 {
@@ -41,6 +51,7 @@ int wpa_access_point::frequency() const
 }
 void wpa_access_point::cancel_hysteresis()
 {
+    lock_guard<mutex> lock(m_locker);
     if(m_bHysteresisMode)
     {
 #ifdef DEBUG
@@ -51,6 +62,7 @@ void wpa_access_point::cancel_hysteresis()
 }
 void wpa_access_point::start_hysteresis(int new_rssi,int hyst_difference_rssi)
 {
+    lock_guard<mutex> lock(m_locker);
     if(!m_bHysteresisMode)
     {
         if(abs(m_rssi - new_rssi) >= hyst_difference_rssi)
@@ -65,6 +77,7 @@ void wpa_access_point::start_hysteresis(int new_rssi,int hyst_difference_rssi)
 }
 bool wpa_access_point::check_hysteresis(int new_rssi,int hyst_difference_rssi,int minrssi, std::chrono::seconds& transition_time)
 {
+    lock_guard<mutex> lock(m_locker);
     if(m_bHysteresisMode)
     {
         if(abs(m_rssi - new_rssi) >= hyst_difference_rssi && new_rssi  > minrssi && m_rssi > new_rssi) // patch
@@ -106,23 +119,49 @@ const mac_addr& wpa_access_point::bssid() const
 }
 void wpa_access_point::set_open(bool flag)
 {
+    lock_guard<mutex> lock(m_locker);
     m_bopen_system = flag;
 }
 void wpa_access_point::set_frequency(size_t frequency)
 {
+    lock_guard<mutex> lock(m_locker);
     m_frequency = frequency;
 }
 void wpa_access_point::set_ssid(const string& ssid)
 {
+    lock_guard<mutex> lock(m_locker);
     m_ssid = ssid;
 }
 void wpa_access_point::set_rssi(int rssi)
 {
+    lock_guard<mutex> lock(m_locker);
     m_rssi = rssi;
 }
 void wpa_access_point::set_bssid(mac_addr& addr)
 {
+    lock_guard<mutex> lock(m_locker);
     m_bssid = addr;
+}
+bool wpa_access_point::operator!=(const wpa_access_point& ap)
+{
+    return (m_rssi != ap.m_rssi);
+}
+bool wpa_access_point::operator==(const wpa_access_point& ap)
+{
+    return (m_rssi == ap.m_rssi);
+}
+bool wpa_access_point::operator<(const wpa_access_point& ap)
+{
+    return (m_rssi < ap.m_rssi);
+}
+bool wpa_access_point::operator>(const wpa_access_point& ap)
+{
+    return (m_rssi > ap.m_rssi);
+}
+ostream& operator << (ostream& os,const wpa_access_point& ap)
+{
+    os << ap.m_bssid << "\t" << ap.m_ssid << "\t" << ap.m_rssi << "\t" << ap.m_frequency << "\t" << ap.m_bopen_system << endl;
+    return os;
 }
 
 // APLIST CLASS
@@ -231,7 +270,7 @@ wpa_access_point* ap_list::get_best_signal(const string& ssid)
     }
 }
 
-void ap_list::push_back(wpa_access_point& ap)
+void ap_list::push_back(const wpa_access_point& ap)
 {
     lock_guard<mutex> lck(m_locker);
     bool m_bfinded = false;
@@ -274,13 +313,13 @@ void ap_list::remove(const string& ssid)
 void ap_list::remove(mac_addr& addr)
 {
     lock_guard<mutex> lck(m_locker);
-   for(size_t i=0;i<m_ap_list.size();i++)
-   {
+    for(size_t i=0;i<m_ap_list.size();i++)
+    {
         if(m_ap_list[i].bssid()==addr)
         {
             m_ap_list.erase(m_ap_list.begin() + i);
         }
-   }
+    }
 }
 wpa_access_point& ap_list::operator [] (size_t pos)
 {
@@ -294,6 +333,11 @@ wpa_access_point& ap_list::operator [] (size_t pos)
         throw runtime_error("ap_list :: operator[] : out of range");
     }
 }
-
+void ap_list::sort()
+{
+    lock_guard<mutex> lck(m_locker);
+    std::sort(m_ap_list.begin(),m_ap_list.end(),[]( wpa_access_point& lhs, wpa_access_point& rhs)
+    { return (lhs > rhs);});
+}
 
 

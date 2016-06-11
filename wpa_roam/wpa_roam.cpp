@@ -248,13 +248,12 @@ void wpa_roamer::OnScanResults()
     if(m_bConnected)
     {
 #ifdef DEBUG
-        cout << "Connected to : " << m_current_bssid.to_string() << "\t" << m_ssid << "\t";
+        cout << "Connected to : " << *m_scanned_ap_list.find_ap_by_bssid(m_current_bssid);
 #endif
         auto ptr = m_scanned_ap_list.find_ap_by_bssid(m_current_bssid);
         if(ptr)
         {
             m_current_rssi = ptr->rssi();
-            cout << m_current_rssi;
             m_bInActiveMode = (m_current_rssi < m_nScanThresholdLevel) ? true : false;
 #ifdef DEBUG
             if(m_bInActiveMode)
@@ -313,16 +312,7 @@ void wpa_roamer::show_list(ap_list* ptr)
     {
         for(auto &i : *ptr)
         {
-            string temp = (i.ssid() + "\t" + i.bssid().to_string() + "\t" + to_string(i.rssi()) + "\t" + to_string(i.frequency()));
-            //cout << i.ssid() << "\t" << i.bssid().to_string() << "\t" << i.rssi() <<"\t" << i.frequency();
-            if(i.is_open())
-            {
-                temp += "\tOpen System";
-            //    cout << "\tOpen System";
-            }
-            temp += "\n";
-            cout << temp;
-
+            cout << i;
         }
     }
 #endif
@@ -363,33 +353,38 @@ void wpa_roamer::hard_roam(ap_list* ptr)
 }
 void wpa_roamer::soft_roam(ap_list* ptr)
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
-    for(auto &i: *ptr)
+    if(ptr)
     {
-        if(i.bssid() != m_current_bssid)
+        ptr->sort();
+        bool m_bRoamed = false;
+        for(auto &i: *ptr)
         {
-            if(i.is_hysteresis())
+            if(i.bssid() != m_current_bssid && !m_bRoamed)
             {
-                if(i.check_hysteresis(m_current_rssi,m_nHysteresis,m_nMinRssiLevel,m_nTransitionTime))
+                if(i.is_hysteresis())
                 {
-#ifdef DEBUG
-                    cout << "SOFT ";
-#endif
-                    make_roam(m_ssid,i.bssid());
-                    cancel_hysteresis(&m_scanned_ap_list);
-                    break;
+                    if(i.check_hysteresis(m_current_rssi,m_nHysteresis,m_nMinRssiLevel,m_nTransitionTime))
+                    {
+    #ifdef DEBUG
+                        cout << "SOFT ";
+    #endif
+                        if(!m_bRoamed)
+                        {
+                            make_roam(m_ssid,i.bssid());
+                            m_bRoamed = true;
+                        }
+                        cancel_hysteresis(&m_scanned_ap_list);
+                    }
                 }
-            }
-            else
-            {
-                i.start_hysteresis(m_current_rssi,m_nHysteresis);
-            }
-            auto ap_ptr = m_scanned_ap_list.find_ap_by_bssid(i.bssid());
-            if(ap_ptr)
-            {
-                *ap_ptr = i;
+                else
+                {
+                    i.start_hysteresis(m_current_rssi,m_nHysteresis);
+                }
+                auto ap_ptr = m_scanned_ap_list.find_ap_by_bssid(i.bssid());
+                if(ap_ptr)
+                {
+                    *ap_ptr = i;
+                }
             }
         }
     }
@@ -661,9 +656,7 @@ logger::~logger()
 {
     m_bActive = false;
     unique_lock<mutex> locker(m_thread_end);
-#ifdef DEBUG
     cout << CurrentTime() << __CLASS__ << " destroyed\n";
-#endif
 }
 
 void logger::thread_routine()

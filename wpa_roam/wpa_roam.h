@@ -12,6 +12,7 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <algorithm>
 #include <map>
 #include <ctime>
 #include <condition_variable>
@@ -111,6 +112,7 @@ public:
     bool empty() const;
     bool operator == (const mac_addr& obj) const;
     bool operator != (const mac_addr& obj) const;
+    friend ostream& operator << (ostream& os,const mac_addr& mac);
     byte* data();
     string to_string() const;
 private:
@@ -181,7 +183,8 @@ class wpa_access_point
 {
 public:
     wpa_access_point();
-    wpa_access_point(bool os,const string& ssid,mac_addr& addr,size_t freq,int rssi);
+    wpa_access_point(const wpa_access_point& obj);
+    wpa_access_point(bool os,const string& ssid,const mac_addr& addr,size_t freq,int rssi);
     wpa_access_point& operator =(const wpa_access_point& obj);
     const string& ssid() const;
     int rssi() const;
@@ -197,7 +200,13 @@ public:
     void set_ssid(const string& ssid);
     void set_rssi(int rssi);
     void set_bssid(mac_addr& addr);
+    friend ostream& operator<<(ostream& os,const wpa_access_point& ap);
+    bool operator < (const wpa_access_point& ap);
+    bool operator > (const wpa_access_point& ap);
+    bool operator == (const wpa_access_point& ap);
+    bool operator != (const wpa_access_point& ap);
 private:
+    mutex m_locker;
     bool m_bHysteresisMode;
     std::chrono::seconds m_HysteresisStartTime;
     bool m_bopen_system;
@@ -226,10 +235,11 @@ public:
     wpa_access_point* find_ap_by_bssid(const mac_addr& bssid);
     wpa_access_point* get_best_signal(mac_addr& bssid);
     wpa_access_point* get_best_signal(const string& ssid);
-    void push_back(wpa_access_point& ap);
+    void push_back(const wpa_access_point& ap);
     void remove_all_exclude(const string& ssid);
     void remove(const string& ssid);
     void remove(mac_addr& addr);
+    void sort();
     wpa_access_point& operator [] (size_t pos);
 };
 
