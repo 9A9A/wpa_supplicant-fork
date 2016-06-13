@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="-p/var/run/wpa_supplicant -iwlp3s0 -h10 -s-60 -t10-m-85 " />
+				<Option parameters="-p/var/run/wpa_supplicant -iwlp3s0 -h10 -s-60 -t7 -m-80 " />
 				<Compiler>
 					<Add option="-g" />
 					<Add option="-DDEBUG" />

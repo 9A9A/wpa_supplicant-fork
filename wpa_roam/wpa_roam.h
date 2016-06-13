@@ -76,12 +76,26 @@ using namespace chrono;
 typedef unsigned char byte;
 string CurrentTime (bool flag = false );
 #ifdef DEBUG
-static map<thread::id,string> g_ThreadId;
+class ThreadInfo
+{
+    map<thread::id,string> m_threadid;
+    recursive_mutex m_locker;
+    ThreadInfo();
+    ~ThreadInfo();
+public:
+    ThreadInfo(const ThreadInfo& ) = delete;
+    ThreadInfo(ThreadInfo&& ) = delete;
+    ThreadInfo& operator = (const ThreadInfo& ) = delete;
+    ThreadInfo& operator = (ThreadInfo&& ) = delete;
+    static ThreadInfo& instance();
+    void SetThreadName(const string& str);
+    void EraseThreadName();
+    string ThreadId();
+};
+#define THREAD_START(x) ThreadInfo::instance().SetThreadName(x)
+#define THREAD_END ThreadInfo::instance().EraseThreadName()
 #define LOG_INTERVAL 250
-#define __CLASS__ thread_id() + "#" + typeid(*this).name()
-void SetThreadName(const string& str);
-void EraseThreadName();
-string thread_id();
+#define __CLASS__ ThreadInfo::instance().ThreadId() + "#" + typeid(*this).name()
 #endif
 class wpa_response
 {
@@ -145,7 +159,6 @@ private:
 
 //    mutex m_locker;
     recursive_mutex m_locker;
-    mutex m_thread_end;
     string m_ctrl_iface_dir;
     string m_ctrl_iface_name;
 
@@ -287,7 +300,6 @@ private:
 
     mutex m_locker;
     mutex m_synchronized;
-    mutex m_thread_end;
     condition_variable m_changed;
     atomic<bool> m_bNotified;
     atomic<bool> m_bInActiveMode;
@@ -310,7 +322,6 @@ public:
     logger(shared_ptr<wpa_roamer>& roamer,int log_period);
     virtual ~logger();
 private:
-    mutex m_thread_end;
     void thread_routine();
     int m_period;
     unique_ptr<fstream> m_pFileHandle;

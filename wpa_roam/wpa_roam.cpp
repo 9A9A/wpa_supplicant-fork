@@ -444,10 +444,6 @@ void wpa_roamer::start_thread()
         m_bNotified = false;
         m_bThreadActive = true;
         m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
-        if(m_pthread->joinable())
-        {
-            m_pthread->detach();
-        }
     }
 }
 void wpa_roamer::stop_thread()
@@ -456,7 +452,7 @@ void wpa_roamer::stop_thread()
     {
         m_bThreadActive = false;
         unlock_polling_thread();
-        unique_lock<mutex> lock(m_thread_end);
+        m_pthread->join();
     }
 }
 int wpa_roamer::get_network_id(const string& ssid)
@@ -489,9 +485,8 @@ int wpa_roamer::get_network_id(const string& ssid)
 }
 void wpa_roamer::thread_routine()
 {
-    unique_lock<mutex> locker(m_thread_end);
 #ifdef DEBUG
-    SetThreadName("RoamerScanThread");
+    THREAD_START("RoamerScanThread");
 #endif
     while(m_bThreadActive)
     {
@@ -519,7 +514,7 @@ void wpa_roamer::thread_routine()
         }
     }
 #ifdef DEBUG
-    EraseThreadName();
+    THREAD_END;
 #endif
 }
 void wpa_roamer::active_scanning()
@@ -643,29 +638,24 @@ logger::logger(shared_ptr<wpa_roamer>& roamer,int log_period)
     m_pRoamer = roamer;
     m_period = log_period;
     m_pFileHandle = unique_ptr<fstream>(new fstream(CurrentTime(true) + "_log.txt",ios::out));
-    m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
-    m_bActive = true;
     if(!m_pFileHandle->is_open())
     {
         *m_pFileHandle << CurrentTime() << endl;
         throw runtime_error("can't open the file");
     }
-    if(m_pthread->joinable())
-    {
-        m_pthread->detach();
-    }
+    m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
+    m_bActive = true;
 }
 logger::~logger()
 {
     m_bActive = false;
-    unique_lock<mutex> locker(m_thread_end);
+    m_pthread->join();
     cout << CurrentTime() << __CLASS__ << " destroyed\n";
 }
 
 void logger::thread_routine()
 {
-    unique_lock<mutex> locker(m_thread_end);
-    SetThreadName("logger::loop");
+    THREAD_START("LoggerThread");
     while(m_bActive)
     {
         *m_pFileHandle << CurrentTime(true) << "\t";
@@ -684,6 +674,6 @@ void logger::thread_routine()
         *m_pFileHandle << "\n";
         THREAD_WAIT(m_period);
     }
-    EraseThreadName();
+    THREAD_END;
 }
 #endif

@@ -1,18 +1,33 @@
 #include "wpa_roam.h"
 #ifdef DEBUG
-void SetThreadName(const string& str)
+ThreadInfo& ThreadInfo::instance()
 {
-    cout << CurrentTime() << str << " thread name installed\n";
-    g_ThreadId[this_thread::get_id()] = str;
+    static ThreadInfo object;
+    return object;
 }
-string thread_id()
+ThreadInfo::ThreadInfo()
 {
-    return g_ThreadId[this_thread::get_id()];
 }
-void EraseThreadName()
+ThreadInfo::~ThreadInfo()
 {
-    cout << CurrentTime() << thread_id() << " thread name deleted\n";
-    g_ThreadId.erase(this_thread::get_id());
+    EraseThreadName();
+}
+void ThreadInfo::SetThreadName(const string& str)
+{
+    lock_guard<recursive_mutex> lck(m_locker);
+    cout << CurrentTime() << str << " spawned\n";
+    m_threadid[this_thread::get_id()] = str;
+}
+string ThreadInfo::ThreadId()
+{
+    lock_guard<recursive_mutex> lck(m_locker);
+    return m_threadid[this_thread::get_id()];
+}
+void ThreadInfo::EraseThreadName()
+{
+    lock_guard<recursive_mutex> lck(m_locker);
+    cout << CurrentTime() << ThreadId() << " killed\n";
+    m_threadid.erase(this_thread::get_id());
 }
 #endif
 string CurrentTime(bool flag)

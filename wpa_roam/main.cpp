@@ -20,7 +20,7 @@ void signal_handler(int signum)
 int main(int argc,char* argv[])
 {
 #ifdef DEBUG
-    SetThreadName("MainThread");
+    THREAD_START("MainThread");
 #endif
     try
     {

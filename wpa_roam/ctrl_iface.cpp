@@ -187,10 +187,6 @@ void wpa_ctrl_iface::start_thread()
     {
         m_bThreadActive = true;
         m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
-        if(m_pthread->joinable())
-        {
-            m_pthread->detach();
-        }
     }
 }
 void wpa_ctrl_iface::stop_thread()
@@ -198,14 +194,16 @@ void wpa_ctrl_iface::stop_thread()
     if(m_bThreadActive)
     {
         m_bThreadActive = false;
-        unique_lock<mutex> lock(m_thread_end);
+        if(m_pthread)
+        {
+            m_pthread->join();
+        }
     }
 }
 void wpa_ctrl_iface::thread_routine()
 {
-    unique_lock<mutex> locker(m_thread_end);
 #ifdef DEBUG
-    SetThreadName("CtrlIfaceThread");
+    THREAD_START("CtrlIfaceThread");
 #endif
     while(m_bThreadActive)
     {
@@ -232,7 +230,7 @@ void wpa_ctrl_iface::thread_routine()
         }
     }
 #ifdef DEBUG
-    EraseThreadName();
+    THREAD_END;
 #endif
 }
 
