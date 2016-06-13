@@ -92,8 +92,17 @@ public:
     void EraseThreadName();
     string ThreadId();
 };
-#define THREAD_START(x) ThreadInfo::instance().SetThreadName(x)
-#define THREAD_END ThreadInfo::instance().EraseThreadName()
+class ThrdInf
+{
+public:
+    ThrdInf() = delete;
+    ThrdInf(const string& thread_name);
+    ThrdInf(const ThrdInf& ) = delete;
+    ThrdInf(ThrdInf&& ) = delete;
+    ThrdInf& operator = (const ThrdInf& ) = delete;
+    ThrdInf& operator = (ThrdInf&& ) = delete;
+    ~ThrdInf();
+};
 #define LOG_INTERVAL 250
 #define __CLASS__ ThreadInfo::instance().ThreadId() + "#" + typeid(*this).name()
 #endif

@@ -486,7 +486,7 @@ int wpa_roamer::get_network_id(const string& ssid)
 void wpa_roamer::thread_routine()
 {
 #ifdef DEBUG
-    THREAD_START("RoamerScanThread");
+    ThrdInf thr("RoamerScanThread");
 #endif
     while(m_bThreadActive)
     {
@@ -513,9 +513,6 @@ void wpa_roamer::thread_routine()
             }
         }
     }
-#ifdef DEBUG
-    THREAD_END;
-#endif
 }
 void wpa_roamer::active_scanning()
 {
@@ -655,7 +652,7 @@ logger::~logger()
 
 void logger::thread_routine()
 {
-    THREAD_START("LoggerThread");
+    ThrdInf thr("LoggerThread");
     while(m_bActive)
     {
         *m_pFileHandle << CurrentTime(true) << "\t";
@@ -674,6 +671,5 @@ void logger::thread_routine()
         *m_pFileHandle << "\n";
         THREAD_WAIT(m_period);
     }
-    THREAD_END;
 }
 #endif

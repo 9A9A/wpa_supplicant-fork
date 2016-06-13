@@ -203,7 +203,7 @@ void wpa_ctrl_iface::stop_thread()
 void wpa_ctrl_iface::thread_routine()
 {
 #ifdef DEBUG
-    THREAD_START("CtrlIfaceThread");
+    ThrdInf thr("CtrlIfaceThread");
 #endif
     while(m_bThreadActive)
     {
@@ -229,8 +229,5 @@ void wpa_ctrl_iface::thread_routine()
             THREAD_WAIT(THREAD_SLEEP_DELAY);
         }
     }
-#ifdef DEBUG
-    THREAD_END;
-#endif
 }
 

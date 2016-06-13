@@ -10,7 +10,6 @@ ThreadInfo::ThreadInfo()
 }
 ThreadInfo::~ThreadInfo()
 {
-    EraseThreadName();
 }
 void ThreadInfo::SetThreadName(const string& str)
 {
@@ -28,6 +27,14 @@ void ThreadInfo::EraseThreadName()
     lock_guard<recursive_mutex> lck(m_locker);
     cout << CurrentTime() << ThreadId() << " killed\n";
     m_threadid.erase(this_thread::get_id());
+}
+ThrdInf::ThrdInf(const string& thread_name)
+{
+    ThreadInfo::instance().SetThreadName(thread_name);
+}
+ThrdInf::~ThrdInf()
+{
+    ThreadInfo::instance().EraseThreadName();
 }
 #endif
 string CurrentTime(bool flag)
