@@ -33,10 +33,10 @@ shared_ptr<wpa_ctrl_iface>& wpa_event_monitor::iface()
 }
 void wpa_event_monitor::parser(wpa_response& response)
 {
-    string response_str = response.to_string();
+    auto response_str = response.to_string();
     if(response_str.find(WPA_EVENT_CONNECTED)!=string::npos)
     {
-        string string_to_parse = response_str;
+        auto string_to_parse = response_str;
         mac_addr addr_t(string_to_parse.substr(string_to_parse.find("Connection to ")+sizeof("Connection to "),MAX_MAC_ADDR_SIZE));
         if(OnEventConnected)
         {
@@ -45,7 +45,7 @@ void wpa_event_monitor::parser(wpa_response& response)
     }
     else if(response_str.find(WPA_EVENT_DISCONNECTED)!=string::npos)
     {
-        string string_to_parse = response_str;
+        auto string_to_parse = response_str;
         mac_addr addr_t(string_to_parse.substr(string_to_parse.find("bssid=")+sizeof("bssid=")-1,MAX_MAC_ADDR_SIZE));
         if(OnEventDisconnected)
         {
@@ -75,7 +75,7 @@ void wpa_event_monitor::parser(wpa_response& response)
     }
     else if(response_str.find(WPA_EVENT_BSS_ADDED)!=string::npos)
     {
-        string string_to_parse = response_str;
+        auto string_to_parse = response_str;
         mac_addr addr_t(string_to_parse.substr(string_to_parse.size()-MAX_MAC_ADDR_SIZE,MAX_MAC_ADDR_SIZE));
         if(OnEventBSSAdded)
         {
@@ -84,7 +84,7 @@ void wpa_event_monitor::parser(wpa_response& response)
     }
     else if(response_str.find(WPA_EVENT_BSS_REMOVED)!=string::npos)
     {
-        string string_to_parse = response_str;
+        auto string_to_parse = response_str;
         mac_addr addr_t(string_to_parse.substr(string_to_parse.size()-MAX_MAC_ADDR_SIZE,MAX_MAC_ADDR_SIZE));
         if(OnEventBSSRemoved)
         {
@@ -93,7 +93,7 @@ void wpa_event_monitor::parser(wpa_response& response)
     }
     else if(response_str.find(WPA_EVENT_ASSOCIATED)!=string::npos)
     {
-        string string_to_parse = response_str;
+        auto string_to_parse = response_str;
 #ifdef DEBUG
         cout << string_to_parse << endl;
 #endif
@@ -240,9 +240,9 @@ void wpa_roamer::OnScanResults()
 #ifdef DEBUG
     cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
 #endif
-    wpa_response response_t = m_pevent_mon->iface()->request(SCAN_RESULTS);
+    auto response_t = m_pevent_mon->iface()->request(SCAN_RESULTS);
     parse_scan_request(response_t);
-    ap_list connected_list = m_scanned_ap_list.get_all_by_ssid(m_ssid);
+    auto connected_list = m_scanned_ap_list.get_all_by_ssid(m_ssid);
     update_connection_state();
 
     if(m_bConnected)
@@ -394,15 +394,11 @@ void wpa_roamer::soft_roam(ap_list* ptr)
 }
 void wpa_roamer::unlock_polling_thread()
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
     m_bNotified = true;
     m_changed.notify_one();
 }
 void wpa_roamer::OnTerminating()
 {
-    // programm exit point
     lock_guard<mutex> lock(m_locker);
 #ifdef DEBUG
     cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
@@ -420,15 +416,15 @@ void wpa_roamer::update_connection_state()
 //#ifdef DEBUG
 //    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
 //#endif
-    wpa_response response_t = m_pevent_mon->iface()->request(STATUS);
-    string response = response_t.to_string();
+    auto response_t = m_pevent_mon->iface()->request(STATUS);
+    auto response = response_t.to_string();
     if(response.find(CONNECTED_STATE)!=string::npos)
     {
         m_bConnected = true;
         size_t ssid_pos = response.find("\nssid=");
         size_t end_line_pos = response.find("\nid=");
         m_ssid = response.substr(ssid_pos + sizeof("\nssid=")-1,end_line_pos-ssid_pos-sizeof("\nssid"));
-        string bssid_t = response.substr(response.find("bssid=")+sizeof("bssid=")-1,MAX_MAC_ADDR_SIZE);
+        auto bssid_t = response.substr(response.find("bssid=")+sizeof("bssid=")-1,MAX_MAC_ADDR_SIZE);
         m_current_bssid = mac_addr(bssid_t);
     }
     else if(response.find(DISCONNECTED_STATE)!=string::npos)
@@ -443,7 +439,7 @@ void wpa_roamer::start_thread()
     {
         m_bNotified = false;
         m_bThreadActive = true;
-        m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
+        m_pthread = make_unique<thread>([this]{thread_routine();});
     }
 }
 void wpa_roamer::stop_thread()
@@ -452,13 +448,16 @@ void wpa_roamer::stop_thread()
     {
         m_bThreadActive = false;
         unlock_polling_thread();
-        m_pthread->join();
+        if(m_pthread)
+        {
+            m_pthread->join();
+        }
     }
 }
 int wpa_roamer::get_network_id(const string& ssid)
 {
-    wpa_response response_t = m_pevent_mon->iface()->request(LIST_NETWORKS);
-    string response = response_t.to_string();
+    auto response_t = m_pevent_mon->iface()->request(LIST_NETWORKS);
+    auto response = response_t.to_string();
     size_t pos;
     auto previous_find = [&response](size_t pos, char symbol) -> size_t
     {
@@ -532,9 +531,6 @@ void wpa_roamer::active_scanning()
 }
 void wpa_roamer::passive_scanning(size_t freq)
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
     if(!freq)
     {
         m_pevent_mon->iface()->request(PASSIVE_SCAN_REQUEST); // scan all channels
@@ -555,30 +551,27 @@ void wpa_roamer::passive_scanning(size_t freq)
 }
 void wpa_roamer::parse_scan_request(wpa_response& resp)
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
-    string response_t = resp.to_string();
+    auto response_t = resp.to_string();
     response_t.erase(response_t.begin(),response_t.begin() + response_t.find("\n")+1);
     string line_to_parse;
     while(response_t.size())
     {
         line_to_parse = response_t.substr(0,response_t.find("\n"));
-        string bssid_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+        auto bssid_t = line_to_parse.substr(0,line_to_parse.find("\t"));
         line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t") + 1);
         mac_addr addr_t(bssid_t);
         auto ptr = m_scanned_ap_list.find_ap_by_bssid(addr_t);
         if(ptr)
         {
-            string frequency_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto frequency_t = line_to_parse.substr(0,line_to_parse.find("\t"));
             ptr->set_frequency(stoi(frequency_t));
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string rssi_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto rssi_t = line_to_parse.substr(0,line_to_parse.find("\t"));
             ptr->set_rssi(stoi(rssi_t));
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string flags_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto flags_t = line_to_parse.substr(0,line_to_parse.find("\t"));
             if((flags_t.find("WEP") != string::npos) || (flags_t.find("WPA")!=string::npos))
             {
                 ptr->set_open(false);
@@ -589,7 +582,7 @@ void wpa_roamer::parse_scan_request(wpa_response& resp)
             }
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string ssid_t = line_to_parse.substr(0,line_to_parse.find("\n"));
+            auto ssid_t = line_to_parse.substr(0,line_to_parse.find("\n"));
             ptr->set_ssid(ssid_t);
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\n")+1);
         }
@@ -597,17 +590,17 @@ void wpa_roamer::parse_scan_request(wpa_response& resp)
         {
             wpa_access_point access_point_t;
             access_point_t.set_bssid(addr_t);
-            string frequency_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto frequency_t = line_to_parse.substr(0,line_to_parse.find("\t"));
 //                cout << frequency_t << " ";
             access_point_t.set_frequency(stoi(frequency_t));
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string rssi_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto rssi_t = line_to_parse.substr(0,line_to_parse.find("\t"));
 //                cout << rssi_t << " ";
             access_point_t.set_rssi(stoi(rssi_t));
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string flags_t = line_to_parse.substr(0,line_to_parse.find("\t"));
+            auto flags_t = line_to_parse.substr(0,line_to_parse.find("\t"));
             if((flags_t.find("WEP") != string::npos) || (flags_t.find("WPA")!=string::npos))
             {
                 access_point_t.set_open(false);
@@ -618,7 +611,7 @@ void wpa_roamer::parse_scan_request(wpa_response& resp)
             }
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\t")+1);
 
-            string ssid_t = line_to_parse.substr(0,line_to_parse.find("\n"));
+            auto ssid_t = line_to_parse.substr(0,line_to_parse.find("\n"));
 //                cout << ssid_t;
             access_point_t.set_ssid(ssid_t);
             line_to_parse.erase(line_to_parse.begin(),line_to_parse.begin() + line_to_parse.find("\n")+1);
@@ -634,19 +627,22 @@ logger::logger(shared_ptr<wpa_roamer>& roamer,int log_period)
 {
     m_pRoamer = roamer;
     m_period = log_period;
-    m_pFileHandle = unique_ptr<fstream>(new fstream(CurrentTime(true) + "_log.txt",ios::out));
+    m_pFileHandle = make_unique<fstream>(CurrentTime(true) + "_log.txt",ios::out);
     if(!m_pFileHandle->is_open())
     {
         *m_pFileHandle << CurrentTime() << endl;
         throw runtime_error("can't open the file");
     }
-    m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
+    m_pthread = make_unique<thread>([this]{thread_routine();});
     m_bActive = true;
 }
 logger::~logger()
 {
     m_bActive = false;
-    m_pthread->join();
+    if(m_pthread)
+    {
+        m_pthread->join();
+    }
     cout << CurrentTime() << __CLASS__ << " destroyed\n";
 }
 

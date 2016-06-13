@@ -57,7 +57,6 @@ string wpa_ctrl_iface::get_iface_name() const
 bool wpa_ctrl_iface::connect()
 {
     lock_guard<recursive_mutex> lock(m_locker);
-//    lock_guard<mutex> lock(m_locker);
     if(!m_bConnected)
     {
         auto check_exist=[](const string& name)->bool
@@ -65,7 +64,7 @@ bool wpa_ctrl_iface::connect()
             struct stat buffer;
             return (stat(name.c_str(),&buffer)==0);
         };
-        string path = m_ctrl_iface_dir + m_ctrl_iface_name;
+        auto path = m_ctrl_iface_dir + m_ctrl_iface_name;
         cout << CurrentTime()  << "Waiting for wpa_supplicant\n";
         while(true)
         {
@@ -101,7 +100,6 @@ bool wpa_ctrl_iface::connect()
 bool wpa_ctrl_iface::attach()
 {
     lock_guard<recursive_mutex> lock(m_locker);
-//    lock_guard<mutex> lock(m_locker);
     if(m_bConnected && !m_bAttached)
     {
         int result_t = wpa_ctrl_attach(m_pwpa_ctrl_iface);
@@ -123,18 +121,11 @@ bool wpa_ctrl_iface::attach()
 }
 wpa_response wpa_ctrl_iface::request(const string& cmd, size_t response_size)
 {
-//#ifdef DEBUG
-//    cout << CurrentTime() << __CLASS__ << "::" << __func__  << endl;
-//#endif
-//    lock_guard<mutex> lock(m_locker);
     if(m_bConnected)
     {
-//        cout << "Thread iface::request : preparing to acquire mutex : " << thread_id() << " PARAMS: " << cmd <<endl;
         lock_guard<recursive_mutex> lock(m_locker);
-//        cout << "Thread iface::request : acquired mutex : " << thread_id() << endl;
         wpa_response response_t(response_size);
         wpa_ctrl_request(m_pwpa_ctrl_iface,cmd.data(),cmd.size(),response_t.data(),response_t.size(),nullptr);
-//        cout << "Thread iface::request : leaved mutex : " << thread_id() << endl;
         return response_t;
     }
     else
@@ -145,7 +136,6 @@ wpa_response wpa_ctrl_iface::request(const string& cmd, size_t response_size)
 bool wpa_ctrl_iface::detach()
 {
     lock_guard<recursive_mutex> lock(m_locker);
-//    lock_guard<mutex> lock(m_locker);
     if(m_bConnected && m_bAttached)
     {
         int result_t = wpa_ctrl_detach(m_pwpa_ctrl_iface);
@@ -167,7 +157,6 @@ bool wpa_ctrl_iface::detach()
 bool wpa_ctrl_iface::disconnect()
 {
     lock_guard<recursive_mutex> lock(m_locker);
-//    lock_guard<mutex> lock(m_locker);
     if(m_bAttached)
     {
         detach();
@@ -186,7 +175,7 @@ void wpa_ctrl_iface::start_thread()
     if(m_bConnected && m_bAttached)
     {
         m_bThreadActive = true;
-        m_pthread = unique_ptr<thread>(new thread([this]{thread_routine();}));
+        m_pthread = make_unique<thread>([this]{thread_routine();});
     }
 }
 void wpa_ctrl_iface::stop_thread()
